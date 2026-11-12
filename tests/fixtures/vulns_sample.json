@@ -1,0 +1,6 @@
+[
+  {"pkg": "python-jose", "installed": "3.3.0", "id": "CVE-2024-33663", "severity": "CRITICAL", "fixed": "3.4.0", "title": "algorithm confusion"},
+  {"pkg": "python-jose", "installed": "3.3.0", "id": "CVE-2026-85394", "severity": "CRITICAL", "fixed": null, "title": "no fix available"},
+  {"pkg": "pillow", "installed": "12.1.1", "id": "CVE-2026-112393", "severity": "CRITICAL", "fixed": "13.0.0", "title": "image parsing"},
+  {"pkg": "anyio", "installed": "4.13.0", "id": "CVE-2026-63374", "severity": "CRITICAL", "fixed": "4.14.2", "title": "anyio issue"}
+]
