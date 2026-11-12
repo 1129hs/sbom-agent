@@ -7,7 +7,7 @@ from pathlib import Path
 from openai import OpenAI
 
 # 경로 설정
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 VULNS_PATH = ROOT / "data" / "inputs" / "vulns.json"
 USAGE_PATH = ROOT / "data" / "inputs" / "usage.txt"
 OUTPUT_DIR = ROOT / "data" / "outputs"
@@ -104,7 +104,7 @@ def parse_json(text):
 
 def main():
     if len(sys.argv) != 2 or sys.argv[1] not in ("A", "B"):
-        print("사용법: python src/llm_triage.py A|B")
+        print("사용법: python -m sbom_agent.triage A|B")
         sys.exit(1)
     condition = sys.argv[1]
 
