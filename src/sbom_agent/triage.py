@@ -64,7 +64,12 @@ def load_usage(path):
 def build_prompt(pkg, vulns, usage):
     installed = vulns[0]["installed"]
     vuln_list = [
-        {"id": v["id"], "severity": v["severity"], "fixed": v["fixed"], "title": v["title"]}
+        {
+            "id": v["id"],
+            "severity": v["severity"],
+            "fixed": v["fixed"],
+            "title": v["title"],
+        }
         for v in vulns
     ]
     prompt = (
@@ -131,7 +136,9 @@ def main():
             "raw": raw,
         }
         out_path = OUTPUT_DIR / f"{condition}_{pkg}.json"
-        out_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+        out_path.write_text(
+            json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
         if parsed is None:
             print(f"[{condition}] {pkg}: JSON 파싱 실패 -> {out_path.name} 확인")

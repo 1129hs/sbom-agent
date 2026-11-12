@@ -11,3 +11,11 @@ dependencies = ["openai>=3.42,<4"]
 
 [project.optional-dependencies]
 dev = ["ruff", "pytest", "pip-tools"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
