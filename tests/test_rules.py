@@ -27,6 +27,7 @@ def test_validate_action_overrides_upgrade_when_unfixable():
 
     assert result["action"] == "replace"
     assert "CVE-2026-85394" in result["rule_warnings"][0]
+    assert result["recommended_version"] is None
 
 
 # 모든 취약점이 업그레이드로 고쳐지면 LLM 결과를 그대로 둠

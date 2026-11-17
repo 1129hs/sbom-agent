@@ -11,6 +11,7 @@ def validate_action(vulns, llm_result):
     if result.get("action") == "upgrade" and not upgrade_fixes_all(vulns):
         unfixed = [v["id"] for v in vulns if not v.get("fixed")]
         result["action"] = "replace"
+        result["recommended_version"] = None
         result["rule_warnings"].append(
             f"수정 버전이 없는 취약점이 있어 업그레이드만으로 해결되지 않음: {', '.join(unfixed)}"
         )
