@@ -6,6 +6,8 @@ from pathlib import Path
 
 from openai import OpenAI
 
+from sbom_agent.rules import validate_action
+
 # 경로 설정
 ROOT = Path(__file__).resolve().parent.parent.parent
 VULNS_PATH = ROOT / "data" / "inputs" / "vulns.json"
@@ -126,6 +128,10 @@ def main():
         raw = call_llm(client, SYSTEM_PROMPT, user_prompt)
         parsed = parse_json(raw)
 
+        # LLM 결과를 규칙으로 검증 (파싱 실패면 건너뜀)
+        if parsed is not None:
+            parsed = validate_action(vulns, parsed)
+
         # 원문과 파싱 결과를 함께 저장 (파싱 실패도 기록에 남기기)
         result = {
             "condition": condition,
@@ -147,6 +153,8 @@ def main():
                 f"action={parsed.get('action')} | "
                 f"recommended={parsed.get('recommended_version')}"
             )
+            for warning in parsed["rule_warnings"]:
+                print(f"  ⚠ 규칙 검증: {warning}")
 
 
 if __name__ == "__main__":
