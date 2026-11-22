@@ -4,11 +4,17 @@ import sys
 from pathlib import Path
 
 from sbom_agent.scanner import missing_tools, parse_trivy, run_syft, run_trivy
+from sbom_agent.usage import find_usage
 
 REQUIRED_TOOLS = ["syft", "trivy"]
 
 
-# scan 명령: 입력 확인 → Syft로 SBOM 생성 → Trivy로 취약점 조회
+# 결과를 JSON 파일로 저장 (한글이 깨지지 않게)
+def write_json(path, data):
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+# scan 명령: 입력 확인 → SBOM → 취약점 조회 → 코드 사용 위치
 def run_scan(args):
     target = Path(args.path)
     if not target.is_dir():
@@ -35,11 +41,21 @@ def run_scan(args):
 
     vulns = parse_trivy(trivy_path)
     vulns_path = out_dir / "vulns.json"
-    vulns_path.write_text(
-        json.dumps(vulns, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    packages = {v["pkg"] for v in vulns}
+    write_json(vulns_path, vulns)
+    packages = sorted({v["pkg"] for v in vulns})
     print(f"취약점 {len(vulns)}건 · 패키지 {len(packages)}개 → {vulns_path}")
+
+    # 취약한 패키지마다 코드에서 import하는 위치 찾기
+    usage = {pkg: find_usage(target, pkg) for pkg in packages}
+    usage_path = out_dir / "usage.json"
+    write_json(usage_path, usage)
+    print(f"\n코드 사용 위치 → {usage_path}")
+    for pkg, hits in usage.items():
+        if hits:
+            places = ", ".join(f"{h['file']}:{h['line']}" for h in hits)
+            print(f"  {pkg}: {places}")
+        else:
+            print(f"  {pkg}: 직접 import 없음")
 
 
 def main():
