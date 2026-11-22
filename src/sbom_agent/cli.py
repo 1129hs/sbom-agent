@@ -1,8 +1,9 @@
 import argparse
+import json
 import sys
 from pathlib import Path
 
-from sbom_agent.scanner import missing_tools, run_syft, run_trivy
+from sbom_agent.scanner import missing_tools, parse_trivy, run_syft, run_trivy
 
 REQUIRED_TOOLS = ["syft", "trivy"]
 
@@ -27,10 +28,18 @@ def run_scan(args):
     print(f"스캔 대상: {target}")
 
     sbom_path = run_syft(target, out_dir)
-    print(f"[1/2] SBOM 생성 완료: {sbom_path}")
+    print(f"SBOM 생성 완료: {sbom_path}")
 
     trivy_path = run_trivy(sbom_path, out_dir)
-    print(f"[2/2] 취약점 조회 완료: {trivy_path}")
+    print(f"취약점 조회 완료: {trivy_path}")
+
+    vulns = parse_trivy(trivy_path)
+    vulns_path = out_dir / "vulns.json"
+    vulns_path.write_text(
+        json.dumps(vulns, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    packages = {v["pkg"] for v in vulns}
+    print(f"취약점 {len(vulns)}건 · 패키지 {len(packages)}개 → {vulns_path}")
 
 
 def main():
