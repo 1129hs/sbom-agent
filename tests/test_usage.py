@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from sbom_agent.usage import find_usage, import_name
+from sbom_agent.usage import find_usage, format_usage, import_name
 
 DEMO_APP = Path(__file__).parent / "fixtures" / "demo-app"
 
@@ -31,3 +31,12 @@ def test_find_usage_uses_import_name():
 
 def test_find_usage_empty_when_not_imported():
     assert find_usage(DEMO_APP, "anyio") == []
+
+
+def test_format_usage_lists_file_line_and_code():
+    hits = [{"file": "auth.py", "line": 1, "text": "from jose import jwt"}]
+    assert format_usage(hits) == "auth.py:1  from jose import jwt"
+
+
+def test_format_usage_when_no_hits():
+    assert format_usage([]) == "직접 import 없음"

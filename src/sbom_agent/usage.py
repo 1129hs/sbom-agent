@@ -46,3 +46,10 @@ def find_usage(target, pkg):
                     }
                 )
     return hits
+
+
+# 사용 위치 목록을 LLM 프롬프트에 넣을 글로 변환
+def format_usage(hits):
+    if not hits:
+        return "직접 import 없음"
+    return "\n".join(f"{h['file']}:{h['line']}  {h['text']}" for h in hits)
