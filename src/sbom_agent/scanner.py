@@ -1,3 +1,4 @@
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -28,3 +29,26 @@ def run_trivy(sbom_path, out_dir):
         capture_output=True,
     )
     return trivy_path
+
+
+# Trivy 결과를 triage가 읽는 취약점 목록 형식으로 변환
+def parse_trivy(path):
+    with open(path, encoding="utf-8") as f:
+        report = json.load(f)
+
+    vulns = []
+    for result in report.get("Results", []):
+        # 취약점이 없는 Target은 키가 없거나 null
+        for v in result.get("Vulnerabilities") or []:
+            vulns.append(
+                {
+                    "pkg": v["PkgName"],
+                    "installed": v["InstalledVersion"],
+                    "id": v["VulnerabilityID"],
+                    "severity": v["Severity"],
+                    # 수정 버전이 없으면 Trivy는 빈 문자열을 줌 → None으로 통일
+                    "fixed": v.get("FixedVersion") or None,
+                    "title": v.get("Title", ""),
+                }
+            )
+    return vulns
