@@ -1,9 +1,28 @@
 import argparse
+import sys
+from pathlib import Path
+
+from sbom_agent.scanner import missing_tools
+
+REQUIRED_TOOLS = ["syft", "trivy"]
 
 
-# scan 명령: 지금은 받은 경로만 출력 (다음 단계에서 스캔 파이프라인 연결)
+# scan 명령: 입력 확인 후 스캔 (파이프라인은 다음 단계에서 연결)
 def run_scan(args):
-    print(f"스캔 대상: {args.path}")
+    target = Path(args.path)
+    if not target.is_dir():
+        print(f"폴더를 찾을 수 없습니다: {target}", file=sys.stderr)
+        sys.exit(1)
+
+    missing = missing_tools(REQUIRED_TOOLS)
+    if missing:
+        print(
+            f"필요한 도구가 설치되어 있지 않습니다: {', '.join(missing)}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    print(f"스캔 대상: {target}")
 
 
 def main():
