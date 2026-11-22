@@ -2,12 +2,12 @@ import argparse
 import sys
 from pathlib import Path
 
-from sbom_agent.scanner import missing_tools
+from sbom_agent.scanner import missing_tools, run_syft, run_trivy
 
 REQUIRED_TOOLS = ["syft", "trivy"]
 
 
-# scan 명령: 입력 확인 후 스캔 (파이프라인은 다음 단계에서 연결)
+# scan 명령: 입력 확인 → Syft로 SBOM 생성 → Trivy로 취약점 조회
 def run_scan(args):
     target = Path(args.path)
     if not target.is_dir():
@@ -22,7 +22,15 @@ def run_scan(args):
         )
         sys.exit(1)
 
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
     print(f"스캔 대상: {target}")
+
+    sbom_path = run_syft(target, out_dir)
+    print(f"[1/2] SBOM 생성 완료: {sbom_path}")
+
+    trivy_path = run_trivy(sbom_path, out_dir)
+    print(f"[2/2] 취약점 조회 완료: {trivy_path}")
 
 
 def main():
@@ -32,9 +40,14 @@ def main():
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # sbom-agent scan <경로>
+    # sbom-agent scan <경로> [--out 폴더]
     scan_parser = subparsers.add_parser("scan", help="폴더를 스캔합니다")
     scan_parser.add_argument("path", help="스캔할 프로젝트 폴더 경로")
+    scan_parser.add_argument(
+        "--out",
+        default="sbom-agent-out",
+        help="결과를 저장할 폴더 (기본: sbom-agent-out)",
+    )
     scan_parser.set_defaults(func=run_scan)
 
     args = parser.parse_args()
