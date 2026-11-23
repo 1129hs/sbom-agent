@@ -1,10 +1,12 @@
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 from sbom_agent.scanner import missing_tools, parse_trivy, run_syft, run_trivy
-from sbom_agent.usage import find_usage
+from sbom_agent.triage import group_by_package, triage_package
+from sbom_agent.usage import find_usage, format_usage
 
 REQUIRED_TOOLS = ["syft", "trivy"]
 
@@ -14,7 +16,36 @@ def write_json(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-# scan 명령: 입력 확인 → SBOM → 취약점 조회 → 코드 사용 위치
+# 패키지마다 LLM 판단 + 규칙 검증, 결과 요약 출력
+def run_triage(vulns, usage, out_dir):
+    # openai는 LLM을 쓸 때만 불러옴 (--no-llm이면 설치·로딩 불필요)
+    from openai import OpenAI
+
+    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"].strip())
+    results = []
+    print("\n영향 판별 (LLM + 규칙 검증)")
+    for pkg, pkg_vulns in sorted(group_by_package(vulns).items()):
+        result = triage_package(client, pkg, pkg_vulns, format_usage(usage[pkg]))
+        results.append(result)
+
+        parsed = result["parsed"]
+        if parsed is None:
+            print(f"  {pkg}: JSON 파싱 실패 (원문은 triage.json에 저장)")
+            continue
+        print(
+            f"  {pkg}: impact={parsed.get('impact')} | "
+            f"action={parsed.get('action')} | "
+            f"recommended={parsed.get('recommended_version')}"
+        )
+        for warning in parsed["rule_warnings"]:
+            print(f"    ⚠ 규칙 검증: {warning}")
+
+    triage_path = out_dir / "triage.json"
+    write_json(triage_path, results)
+    print(f"→ {triage_path}")
+
+
+# scan 명령: 입력 확인 → SBOM → 취약점 조회 → 코드 사용 위치 → 영향 판별
 def run_scan(args):
     target = Path(args.path)
     if not target.is_dir():
@@ -57,6 +88,15 @@ def run_scan(args):
         else:
             print(f"  {pkg}: 직접 import 없음")
 
+    # LLM 단계는 옵션이나 API 키가 없으면 건너뜀 (스캔 결과는 이미 저장됨)
+    if args.no_llm:
+        print("\n--no-llm: 영향 판별을 건너뜁니다.")
+        return
+    if not os.getenv("OPENAI_API_KEY"):
+        print("\nOPENAI_API_KEY가 없어 영향 판별을 건너뜁니다.")
+        return
+    run_triage(vulns, usage, out_dir)
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -65,13 +105,18 @@ def main():
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # sbom-agent scan <경로> [--out 폴더]
+    # sbom-agent scan <경로> [--out 폴더] [--no-llm]
     scan_parser = subparsers.add_parser("scan", help="폴더를 스캔합니다")
     scan_parser.add_argument("path", help="스캔할 프로젝트 폴더 경로")
     scan_parser.add_argument(
         "--out",
         default="sbom-agent-out",
         help="결과를 저장할 폴더 (기본: sbom-agent-out)",
+    )
+    scan_parser.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="LLM 영향 판별 없이 스캔과 사용 위치 검색만 실행",
     )
     scan_parser.set_defaults(func=run_scan)
 
