@@ -1,7 +1,7 @@
 # 01. LLM 영향 판별 실험
 
 - 날짜: 2026-11-03
-- 스크립트: `src/llm_triage.py`
+- 스크립트: `src/llm_triage.py` (현재는 `src/sbom_agent/triage.py`로 이동, 실행부는 `sbom-agent scan`으로 대체)
 - 모델: `gpt-5-mini` (OpenAI Responses API)
 
 ## 목적
@@ -57,14 +57,30 @@
 
 ## 다음 할 일
 
-- [ ] `fixed: null` 규칙 검증을 코드로 추가하고 python-jose 결과가 걸러지는지 확인
+- [x] `fixed: null` 규칙 검증을 코드로 추가하고 python-jose 결과가 걸러지는지 확인
 - [ ] 의존성 트리(`pipdeptree` 등)를 입력에 추가해 anyio 판단이 "낮음"으로 바뀌는지 확인
-- [ ] 검색 범위 설명 문구를 바꿔 발견 4가 프롬프트 탓인지 분리해서 확인
+- [x] 검색 범위 설명 문구를 바꿔 발견 4가 프롬프트 탓인지 분리해서 확인 (1회 확인, 63번 반복 실행으로 확정 필요)
 - [ ] 같은 입력으로 여러 번 돌려 판단이 일관적인지 확인
 
 ## 재현
+
+당시 실행 방법 (`main()`은 2026-11-22에 제거됨):
 
 ```bash
 python src/llm_triage.py A
 python src/llm_triage.py B
 ```
+
+현재는 데모 앱(`tests/fixtures/demo-app/`)으로 같은 상황을 재현할 수 있다. 조건 B(취약점 + 코드 사용 위치)에 해당한다.
+
+```bash
+sbom-agent scan ./tests/fixtures/demo-app
+```
+
+## 후속 확인 (2026-11-23)
+
+`sbom-agent scan`으로 데모 앱을 1회 실행한 결과:
+
+- python-jose: LLM은 여전히 `upgrade`를 권했고, 규칙 검증이 `replace`로 바꾸고 경고를 남김 (발견 3 재현, 규칙 검증으로 해결)
+- anyio: 검색 범위 문구를 "직접 import가 없어도 실행 중에 쓰일 수 있으니 보수적으로 판단"으로 바꾼 뒤 `해당 없음` → `확인 필요` (발견 4가 프롬프트 영향이었을 가능성, 1회 실행이라 반복 확인 필요)
+- anyio는 `action=monitor`인데 `recommended_version`이 함께 나옴 → 규칙 정리 후보

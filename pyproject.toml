@@ -12,6 +12,9 @@ dependencies = ["openai>=3.42,<4"]
 [project.optional-dependencies]
 dev = ["ruff", "pytest", "pip-tools"]
 
+[project.scripts]
+sbom-agent = "sbom_agent.cli:main"
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"

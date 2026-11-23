@@ -1,27 +1,15 @@
 import json
-import os
-import sys
 from collections import defaultdict
-from pathlib import Path
-
-from openai import OpenAI
 
 from sbom_agent.rules import validate_action
 
-# 경로 설정
-ROOT = Path(__file__).resolve().parent.parent.parent
-VULNS_PATH = ROOT / "data" / "inputs" / "vulns.json"
-USAGE_PATH = ROOT / "data" / "inputs" / "usage.txt"
-OUTPUT_DIR = ROOT / "data" / "outputs"
-
 MODEL = "gpt-5-mini"
 
-# 코드 검색 범위 설명 (B 조건에서 LLM에게 함께 전달)
+# 코드 검색 범위 설명 (사용 위치와 함께 LLM에게 전달)
 SEARCH_SCOPE = (
-    "검색 범위: 서비스 백엔드의 모든 .py 파일 (가상환경 제외)\n"
-    "검색 패턴: from PIL, import PIL, from jose, import jose, from anyio, import anyio, "
-    "jwt.encode, jwt.decode, JWTError\n"
-    "아래 결과에 어떤 패키지가 나오지 않으면, 서비스 코드에서 그 패키지를 직접 import하지 않는다는 뜻이다."
+    "검색 범위: 대상 폴더의 모든 .py 파일 (가상환경 제외), import 문만 검색\n"
+    "직접 import가 없어도 프레임워크 같은 다른 라이브러리를 통해 실행 중에 쓰일 수 있다. "
+    '이 경우 "해당 없음"이 아니라 "낮음" 또는 "확인 필요"로 판단한다.'
 )
 
 SYSTEM_PROMPT = """너는 SW 공급망 보안 분석가다. 주어진 입력만 근거로 판단한다.
@@ -45,24 +33,21 @@ SYSTEM_PROMPT = """너는 SW 공급망 보안 분석가다. 주어진 입력만 
 }"""
 
 
-# 취약점 목록을 패키지별로 묶기
-def load_vulns(path):
-    with open(path, encoding="utf-8") as f:
-        vulns = json.load(f)
+# 취약점 리스트를 패키지별로 묶기
+def group_by_package(vulns):
     grouped = defaultdict(list)
     for v in vulns:
         grouped[v["pkg"]].append(v)
     return grouped
 
 
-# 코드 사용 위치 읽기 (로컬 절대경로는 지워서 전달)
-def load_usage(path):
-    text = Path(path).read_text(encoding="utf-8")
-    home_prefix = str(Path.home()) + "/wifi_web-platform/"
-    return text.replace(home_prefix, "")
+# 취약점 파일을 읽어 패키지별로 묶기
+def load_vulns(path):
+    with open(path, encoding="utf-8") as f:
+        return group_by_package(json.load(f))
 
 
-# 유저 프롬프트 만들기 (usage가 None이면 A 조건)
+# 유저 프롬프트 만들기 (usage가 None이면 코드 정보 없이 취약점만)
 def build_prompt(pkg, vulns, usage):
     installed = vulns[0]["installed"]
     vuln_list = [
@@ -108,54 +93,11 @@ def parse_json(text):
         return None
 
 
-def main():
-    if len(sys.argv) != 2 or sys.argv[1] not in ("A", "B"):
-        print("사용법: python -m sbom_agent.triage A|B")
-        sys.exit(1)
-    condition = sys.argv[1]
-
-    if not os.getenv("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY가 설정되지 않았습니다.")
-        sys.exit(1)
-
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"].strip())
-    grouped = load_vulns(VULNS_PATH)
-    usage = load_usage(USAGE_PATH) if condition == "B" else None
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    for pkg, vulns in grouped.items():
-        user_prompt = build_prompt(pkg, vulns, usage)
-        raw = call_llm(client, SYSTEM_PROMPT, user_prompt)
-        parsed = parse_json(raw)
-
-        # LLM 결과를 규칙으로 검증 (파싱 실패면 건너뜀)
-        if parsed is not None:
-            parsed = validate_action(vulns, parsed)
-
-        # 원문과 파싱 결과를 함께 저장 (파싱 실패도 기록에 남기기)
-        result = {
-            "condition": condition,
-            "model": MODEL,
-            "package": pkg,
-            "parsed": parsed,
-            "raw": raw,
-        }
-        out_path = OUTPUT_DIR / f"{condition}_{pkg}.json"
-        out_path.write_text(
-            json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-
-        if parsed is None:
-            print(f"[{condition}] {pkg}: JSON 파싱 실패 -> {out_path.name} 확인")
-        else:
-            print(
-                f"[{condition}] {pkg}: impact={parsed.get('impact')} | "
-                f"action={parsed.get('action')} | "
-                f"recommended={parsed.get('recommended_version')}"
-            )
-            for warning in parsed["rule_warnings"]:
-                print(f"  ⚠ 규칙 검증: {warning}")
-
-
-if __name__ == "__main__":
-    main()
+# 패키지 하나 판단: 프롬프트 → LLM → 파싱 → 규칙 검증
+def triage_package(client, pkg, vulns, usage):
+    raw = call_llm(client, SYSTEM_PROMPT, build_prompt(pkg, vulns, usage))
+    parsed = parse_json(raw)
+    # 파싱에 실패하면 규칙 검증은 건너뛰고 원문만 남김
+    if parsed is not None:
+        parsed = validate_action(vulns, parsed)
+    return {"package": pkg, "model": MODEL, "parsed": parsed, "raw": raw}
