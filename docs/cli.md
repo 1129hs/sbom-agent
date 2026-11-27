@@ -111,3 +111,47 @@ sbom-agent scan ./my-service --no-llm --out ./reports/my-service
 # Docker
 docker run --rm -v "$(pwd)":/work -e OPENAI_API_KEY sbom-agent scan my-service
 ```
+
+## sbom-agent serve
+
+`scan` 결과 폴더를 웹 대시보드로 보여줍니다. 요청마다 결과 파일을 다시 읽으므로, 다시 스캔하면 새로고침만 하면 됩니다.
+
+```
+sbom-agent serve [--out OUT] [--host HOST] [--port PORT] [--target TARGET]
+```
+
+| 이름 | 기본값 | 설명 |
+| --- | --- | --- |
+| `--out` | `sbom-agent-out` | 스캔 결과 폴더 (`vulns.json`이 있어야 함) |
+| `--host` | `127.0.0.1` | 접속을 받을 주소. Docker에서는 `0.0.0.0` |
+| `--port` | `8000` | 포트 |
+| `--target` | | 화면 위쪽에 표시할 스캔 대상 이름 |
+
+### 화면
+
+| 주소 | 내용 |
+| --- | --- |
+| `/` | 조치 목록 (영향도 → 취약점 수 순), `?impact=영향 있음`처럼 영향도 필터 |
+| `/packages/<이름>` | 판단 근거, 코드 사용 위치, 취약점 목록(심각도 순), 조치안, 규칙 검증 경고 |
+
+`triage.json`이 없으면(`--no-llm`으로 스캔) 영향도는 "판별 안 함"으로 표시됩니다.
+
+### 종료 코드
+
+| 코드 | 의미 |
+| --- | --- |
+| `1` | 결과 폴더에 `vulns.json`이 없음 |
+
+
+### 예시
+
+```bash
+# 기본 결과 폴더를 웹으로
+sbom-agent serve --target my-service
+
+# 다른 결과 폴더, 다른 포트
+sbom-agent serve --out ./reports/my-service --port 9000
+
+# Docker (http://localhost:8000)
+docker run --rm -p 8000:8000 -v "$(pwd)":/work sbom-agent serve --host 0.0.0.0
+```

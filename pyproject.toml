@@ -7,10 +7,16 @@ name = "sbom-agent"
 version = "0.1.0"
 requires-python = ">=3.12"
 description = "여러 저장소의 의존성을 하나로 모아 실제 영향 있는 취약점과 조치안을 찾는 에이전트"
-dependencies = ["openai>=3.42,<4"]
+
+dependencies = [
+    "openai>=3.42,<4",
+    "fastapi",
+    "uvicorn",
+    "jinja2>=3",
+]
 
 [project.optional-dependencies]
-dev = ["ruff", "pytest", "pip-tools"]
+dev = ["ruff", "pytest", "pip-tools", "httpx"]
 
 [project.scripts]
 sbom-agent = "sbom_agent.cli:main"
@@ -24,3 +30,7 @@ select = ["E", "F", "I", "UP", "B"]
 ignore = ["E501"]
 [tool.pyright]
 ignore = ["tests/fixtures/demo-app"]
+
+
+[tool.setuptools.package-data]
+sbom_agent = ["templates/*.html"]

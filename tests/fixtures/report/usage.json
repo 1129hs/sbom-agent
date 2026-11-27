@@ -1,0 +1,5 @@
+{
+  "anyio": [],
+  "pillow": [{ "file": "upload.py", "line": 3, "text": "from PIL import Image" }],
+  "python-jose": [{ "file": "auth.py", "line": 1, "text": "from jose import jwt, JWTError" }]
+}

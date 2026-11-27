@@ -98,6 +98,25 @@ def run_scan(args):
     run_triage(vulns, usage, out_dir)
 
 
+# serve 명령: 스캔 결과 폴더를 웹 대시보드로 보여줌
+def run_serve(args):
+    out_dir = Path(args.out)
+    if not (out_dir / "vulns.json").exists():
+        print(
+            f"스캔 결과가 없습니다: {out_dir}/vulns.json (먼저 sbom-agent scan 실행)",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # 웹 관련 라이브러리는 serve할 때만 불러옴
+    import uvicorn
+
+    from sbom_agent.web import create_app
+
+    print(f"대시보드: http://{args.host}:{args.port}  (종료: Ctrl+C)")
+    uvicorn.run(create_app(out_dir, target=args.target), host=args.host, port=args.port)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="sbom-agent",
@@ -119,6 +138,18 @@ def main():
         help="LLM 영향 판별 없이 스캔과 사용 위치 검색만 실행",
     )
     scan_parser.set_defaults(func=run_scan)
+
+    # sbom-agent serve [--out 폴더] [--host] [--port] [--target 이름]
+    serve_parser = subparsers.add_parser("serve", help="스캔 결과를 웹으로 봅니다")
+    serve_parser.add_argument(
+        "--out",
+        default="sbom-agent-out",
+        help="스캔 결과 폴더 (기본: sbom-agent-out)",
+    )
+    serve_parser.add_argument("--host", default="127.0.0.1", help="기본: 127.0.0.1")
+    serve_parser.add_argument("--port", type=int, default=8000, help="기본: 8000")
+    serve_parser.add_argument("--target", help="화면에 표시할 스캔 대상 이름")
+    serve_parser.set_defaults(func=run_serve)
 
     args = parser.parse_args()
     args.func(args)

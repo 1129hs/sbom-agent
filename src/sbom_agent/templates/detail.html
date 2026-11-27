@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ row.pkg }} · sbom-agent{% endblock %}
+
+{% block head %}
+<style>
+  .back { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid #cfd6e4; background: #fff; font-size: 14px; }
+  .layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+  .main-col { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+  .side-col { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+  .code { margin: 0; padding: 14px 18px; border-radius: 16px; background: #f4f7fc; overflow-x: auto; font-size: 13px; line-height: 1.8; }
+  .vuln { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .vuln:first-child { border-top: none; }
+  .vuln-id { flex: 1 1 160px; font-size: 14px; font-weight: 500; }
+  .vuln-title { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+  .action-box { padding: 16px 18px; border-radius: 16px; background: var(--blue-soft); color: #1d4fb8; font-weight: 700; font-size: 16px; }
+  .warn-card { background: #fff8eb; box-shadow: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<a class="back" href="/">← 목록으로</a>
+
+<section style="display: flex; flex-direction: column; gap: 10px;">
+  <p class="eyebrow">PACKAGE</p>
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+    <h1>{{ row.pkg }} <span class="mono muted" style="font-weight: 400; font-size: 22px;">{{ row.installed }}</span></h1>
+    <span class="badge {% if row.impact == '영향 있음' %}high{% endif %}">{{ row.impact or "판별 안 함" }}</span>
+  </div>
+</section>
+
+<div class="layout">
+  <div class="main-col">
+    <section class="card">
+      <h2>판단 근거</h2>
+      <p style="margin: 0; color: var(--text);">{{ row.reason or "LLM 판별을 실행하지 않았습니다. (--no-llm 또는 API 키 없음)" }}</p>
+    </section>
+
+    <section class="card">
+      <h2>코드 사용 위치</h2>
+      {% if row.usage %}
+        <pre class="code mono">{% for u in row.usage %}{{ u.file }}:{{ u.line }}  {{ u.text }}
+{% endfor %}</pre>
+      {% else %}
+        <p class="muted" style="margin: 0;">직접 import 없음 · 다른 라이브러리를 통해 실행 중에 쓰일 수 있습니다.</p>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>취약점 {{ row.vuln_count }}건</h2>
+      <div>
+        {% for v in row.vulns %}
+          <div class="vuln">
+            <span class="vuln-id mono">{{ v.id }}</span>
+            <span class="badge {% if v.severity == 'CRITICAL' %}high{% endif %}">{{ v.severity }}</span>
+            <span class="muted" style="font-size: 13px;">수정 버전 <span class="mono">{{ v.fixed or "없음" }}</span></span>
+            {% if v.title %}<span class="vuln-title">{{ v.title }}</span>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <aside class="side-col">
+    <section class="card">
+      <h2>조치안</h2>
+      <div class="action-box">{{ row.action_label }}</div>
+    </section>
+
+    {% if row.warnings %}
+      <section class="card warn-card">
+        <h2 style="color: var(--warn);">규칙 검증으로 바뀌었어요</h2>
+        {% for w in row.warnings %}
+          <p style="margin: 0; font-size: 14px; color: #5a3a08;">{{ w }}</p>
+        {% endfor %}
+      </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

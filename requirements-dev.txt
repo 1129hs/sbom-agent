@@ -4,6 +4,10 @@
 #
 #    pip-compile --constraint=requirements.txt --extra=dev --output-file=requirements-dev.txt --strip-extras pyproject.toml
 #
+annotated-doc==0.0.7
+    # via
+    #   -c requirements.txt
+    #   fastapi
 annotated-types==0.8.0
     # via
     #   -c requirements.txt
@@ -11,20 +15,40 @@ annotated-types==0.8.0
 anyio==4.16.0
     # via
     #   -c requirements.txt
+    #   fastapi
+    #   httpx
     #   httpx2
     #   openai
+    #   starlette
 build==1.6.1
     # via pip-tools
+certifi==2026.11.20
+    # via
+    #   httpcore
+    #   httpx
 click==8.5.1
-    # via pip-tools
+    # via
+    #   -c requirements.txt
+    #   pip-tools
+    #   uvicorn
+fastapi==0.165.0
+    # via
+    #   -c requirements.txt
+    #   sbom-agent (pyproject.toml)
 h11==0.16.0
     # via
     #   -c requirements.txt
+    #   httpcore
     #   httpcore2
+    #   uvicorn
+httpcore==1.0.9
+    # via httpx
 httpcore2==2.16.0
     # via
     #   -c requirements.txt
     #   httpx2
+httpx==0.29.0
+    # via sbom-agent (pyproject.toml)
 httpx2==2.16.0
     # via
     #   -c requirements.txt
@@ -33,17 +57,30 @@ idna==3.20
     # via
     #   -c requirements.txt
     #   anyio
+    #   httpx
     #   httpx2
 iniconfig==2.3.1
     # via pytest
+jinja2==3.1.6
+    # via
+    #   -c requirements.txt
+    #   sbom-agent (pyproject.toml)
 jiter==0.18.0
     # via
     #   -c requirements.txt
     #   openai
+markupsafe==3.0.4
+    # via
+    #   -c requirements.txt
+    #   jinja2
 openai==3.42.1
     # via
     #   -c requirements.txt
     #   sbom-agent (pyproject.toml)
+opentelemetry-api==1.45.2
+    # via
+    #   -c requirements.txt
+    #   fastapi
 packaging==26.3
     # via
     #   build
@@ -56,6 +93,7 @@ pluggy==1.7.0
 pydantic==2.14.2
     # via
     #   -c requirements.txt
+    #   fastapi
     #   openai
 pydantic-core==2.50.2
     # via
@@ -75,6 +113,10 @@ sniffio==1.3.1
     # via
     #   -c requirements.txt
     #   openai
+starlette==1.10.0
+    # via
+    #   -c requirements.txt
+    #   fastapi
 truststore==0.10.5
     # via
     #   -c requirements.txt
@@ -84,14 +126,21 @@ typing-extensions==4.16.0
     # via
     #   -c requirements.txt
     #   anyio
+    #   fastapi
     #   openai
+    #   opentelemetry-api
     #   pydantic
     #   pydantic-core
     #   typing-inspection
 typing-inspection==0.4.4
     # via
     #   -c requirements.txt
+    #   fastapi
     #   pydantic
+uvicorn==0.54.0
+    # via
+    #   -c requirements.txt
+    #   sbom-agent (pyproject.toml)
 wheel==0.48.0
     # via pip-tools
 

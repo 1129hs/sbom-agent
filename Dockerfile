@@ -26,5 +26,6 @@ RUN pip install --no-cache-dir --no-deps .
 
 # 스캔할 폴더를 여기에 연결해서 사용
 WORKDIR /work
+EXPOSE 8000
 ENTRYPOINT ["sbom-agent"]
 CMD ["--help"]
