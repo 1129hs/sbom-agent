@@ -1,6 +1,6 @@
 # sbom-agent
 
-의존성 취약점 중 **실제로 코드에 영향을 주는 것**을 골라내고 조치안을 정리하는 CLI 도구입니다.
+의존성 취약점 중 **실제로 코드에 영향을 주는 것**을 골라내고 조치안을 정리하는 도구입니다. CLI로 스캔하고, 결과는 터미널이나 웹 대시보드에서 볼 수 있습니다.
 
 ## 왜 만들었나
 
@@ -47,6 +47,16 @@ SBOM 생성 완료: sbom-agent-out/sbom.cdx.json
 
 LLM 판단은 실행할 때마다 달라질 수 있습니다.
 
+## 웹 대시보드
+
+스캔 결과를 웹 화면으로 볼 수 있습니다. 영향도 순으로 정렬된 조치 목록과, 패키지별 판단 근거·코드 사용 위치·취약점·규칙 검증 경고를 보여줍니다.
+
+```bash
+sbom-agent scan ./tests/fixtures/demo-app
+sbom-agent serve --target demo-app
+# http://127.0.0.1:8000
+```
+
 ## 설치와 실행
 
 ### Docker (권장)
@@ -56,15 +66,20 @@ Syft와 Trivy가 이미지에 포함되어 있어 Docker만 있으면 됩니다.
 ```bash
 docker build -t sbom-agent .
 
+# 스캔
 docker run --rm \
   -v "$(pwd)":/work \
   -v ~/Library/Caches/trivy:/root/.cache/trivy \
   sbom-agent scan <경로> --no-llm
+
+# 웹 대시보드 (http://localhost:8000)
+docker run --rm -p 8000:8000 -v "$(pwd)":/work sbom-agent serve --host 0.0.0.0
 ```
 
 - `-v "$(pwd)":/work`: 현재 폴더를 컨테이너에 연결합니다. 결과는 `./sbom-agent-out/`에 저장됩니다.
 - `-v ~/Library/Caches/trivy:...`: Trivy 취약점 DB를 재사용합니다 (macOS 기준). 없으면 실행할 때마다 DB를 새로 받습니다.
 - LLM 판단까지 하려면 `--no-llm`을 빼고 `-e OPENAI_API_KEY`를 추가합니다.
+- 웹은 컨테이너 밖에서 접속할 수 있도록 `--host 0.0.0.0`과 `-p 8000:8000`이 필요합니다.
 
 ### 로컬
 
@@ -78,6 +93,7 @@ pip install -r requirements.txt
 pip install -e . --no-deps
 
 sbom-agent scan <경로>
+sbom-agent serve
 ```
 
 명령어와 옵션은 [docs/cli.md](docs/cli.md)에 정리되어 있습니다.
@@ -104,11 +120,14 @@ pytest
 
 ```
 src/sbom_agent/
-  cli.py       # sbom-agent 명령, 전체 흐름
+  cli.py       # sbom-agent 명령 (scan, serve)
   scanner.py   # Syft·Trivy 실행, Trivy 결과 변환
   usage.py     # 패키지 이름 → import 이름, 코드 사용 위치 검색
   triage.py    # LLM 프롬프트, 호출, 응답 파싱
   rules.py     # LLM 결과 규칙 검증
+  report.py    # 결과 파일을 패키지별 리포트로 합치기
+  web.py       # FastAPI 대시보드
+  templates/   # Jinja2 화면 (목록, 상세)
 tests/
   fixtures/demo-app/   # 일부러 취약한 버전을 쓰는 데모 앱
 experiments/           # 실험 기록
@@ -119,10 +138,11 @@ experiments/           # 실험 기록
 - 코드 사용 위치는 Python의 `import` 문만 찾습니다. 함수 호출 경로나 전이 의존성(예: FastAPI가 내부에서 쓰는 anyio)은 아직 분석하지 않습니다.
 - 패키지 이름과 import 이름이 다른 경우(`pillow` → `PIL`)는 변환표로 처리하며, 표에 없는 패키지는 놓칠 수 있습니다.
 - 한 번에 폴더 하나만 스캔합니다.
+- 웹 대시보드는 스캔 결과를 보여주기만 하며, 스캔은 CLI로 실행합니다.
 
 ## 계획
 
 - 조치 그룹화: 취약점 개수가 아니라 "조치 몇 번이면 끝나는지"로 묶기 (같은 패키지 → 여러 저장소 → 전이 의존성 순)
 - 여러 저장소의 공통 의존성 지도
-- 웹 대시보드 (FastAPI)
+- 웹에서 스캔 시작하기, 웹 대시보드 배포
 - Gradle(Kotlin/Java) 프로젝트 지원
