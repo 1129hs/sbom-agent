@@ -1,7 +1,7 @@
 from pathlib import Path
 from urllib.parse import urlencode
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 
 from sbom_agent.report import IMPACT_ORDER, load_report
@@ -68,6 +68,16 @@ def create_app(out_dir, target=None):
                 "steps": STEPS,
                 "filters": build_filters(rows, impact),
             },
+        )
+
+    @app.get("/packages/{pkg}")
+    def detail_page(request: Request, pkg: str):
+        row = next((r for r in load_report(out_dir) if r["pkg"] == pkg), None)
+        if row is None:
+            raise HTTPException(status_code=404, detail="패키지를 찾을 수 없습니다")
+        row["action_label"] = action_label(row)
+        return TEMPLATES.TemplateResponse(
+            request, "detail.html", {"target": target, "row": row}
         )
 
     return app
