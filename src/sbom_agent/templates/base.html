@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}sbom-agent{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #1f2a44; --text: #2b3550; --muted: #5a6478; --faint: #6b7489;
+      --blue: #2f6fe4; --blue-soft: #e8f0fd; --line: #e3e8f2; --card: #ffffff;
+      --high-bg: #fdecec; --high: #b42318; --warn-bg: #fff4e0; --warn: #8a4b00; --chip: #f1f4fa;
+      --shadow: 0 8px 24px rgba(31, 42, 68, 0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--text); font-size: 15px; line-height: 1.6;
+      font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 85% -10%, #dbe8fb 0%, transparent 60%),
+        radial-gradient(900px 500px at -10% 30%, #eaf2fd 0%, transparent 60%),
+        #f8fafe;
+      min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+    header .wrap { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding-top: 24px; padding-bottom: 24px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; color: var(--navy); letter-spacing: -0.3px; min-height: 44px; }
+    .logo-mark { width: 26px; height: 26px; border-radius: 50%; background: var(--blue); display: flex; align-items: center; justify-content: center; }
+    .logo-mark span { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+    main.wrap { padding-top: 24px; padding-bottom: 80px; display: flex; flex-direction: column; gap: 28px; }
+    .eyebrow { margin: 0; color: var(--blue); font-weight: 600; font-size: 14px; letter-spacing: 0.4px; }
+    h1 { margin: 0; font-size: 34px; font-weight: 800; color: var(--navy); letter-spacing: -0.8px; line-height: 1.3; }
+    h2 { margin: 0; font-size: 18px; font-weight: 700; color: var(--navy); }
+    .lead { margin: 0; color: var(--muted); font-size: 16px; }
+    .card { background: var(--card); border-radius: 24px; padding: 28px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; border: 1px solid #cfd6e4; background: #fff; color: var(--text); font-size: 14px; white-space: nowrap; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--chip); color: var(--muted); }
+    .badge.high { background: var(--high-bg); color: var(--high); }
+    .badge.warn { background: var(--warn-bg); color: var(--warn); }
+    .muted { color: var(--faint); }
+    .empty { padding: 40px; text-align: center; background: var(--card); border-radius: 24px; color: var(--faint); box-shadow: var(--shadow); }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <a class="logo" href="/"><span class="logo-mark"><span></span></span>sbom-agent</a>
+      <span class="pill mono">{{ target or "스캔 결과" }}</span>
+    </div>
+  </header>
+  <main class="wrap">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

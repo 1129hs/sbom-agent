@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}조치 목록 · sbom-agent{% endblock %}
+
+{% block head %}
+<style>
+  .steps { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 4px; }
+  .step { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 96px; }
+  .step-dot { width: 64px; height: 64px; border-radius: 50%; background: #fff; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--blue); font-size: 15px; }
+  .step-label { font-size: 13px; color: var(--muted); }
+  .step-line { flex: 1 1 24px; max-width: 56px; height: 1px; background: #c9d6ee; margin-bottom: 28px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filter { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 18px; border-radius: 999px; border: 1px solid #cfd6e4; background: #fff; color: var(--text); font-size: 14px; }
+  .filter.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .rows { display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; background: #fff; border-radius: 20px; padding: 20px 24px; box-shadow: var(--shadow); border: 1px solid transparent; }
+  .row:hover { border-color: #bcd0f5; }
+  .row-main { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .row-name { font-weight: 700; font-size: 17px; color: var(--navy); }
+  .row-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section style="display: flex; flex-direction: column; gap: 12px;">
+  <p class="eyebrow">SCAN RESULT</p>
+  <h1>조치 목록</h1>
+  <p class="lead">실제 코드에 영향을 주는 취약점부터 정리했습니다.</p>
+  <div class="stats">
+    <span class="pill">패키지 {{ rows_total }}개</span>
+    <span class="pill">취약점 {{ vuln_total }}건</span>
+    <span class="pill" style="color: var(--high);">영향 있음 {{ high_total }}개</span>
+  </div>
+</section>
+
+<section class="steps" aria-label="처리 단계">
+  {% for step in steps %}
+    <div class="step"><span class="step-dot">{{ loop.index }}</span><span class="step-label">{{ step }}</span></div>
+    {% if not loop.last %}<span class="step-line" aria-hidden="true"></span>{% endif %}
+  {% endfor %}
+</section>
+
+<nav class="filters" aria-label="영향도 필터">
+  {% for f in filters %}
+    <a class="filter {% if f.active %}active{% endif %}" href="{{ f.href }}">{{ f.label }} <span class="muted">{{ f.count }}</span></a>
+  {% endfor %}
+</nav>
+
+<section class="rows">
+  {% for row in rows %}
+    <a class="row" href="/packages/{{ row.pkg }}">
+      <div class="row-main">
+        <span class="row-name">{{ row.pkg }} <span class="mono muted" style="font-weight: 400; font-size: 13px;">{{ row.installed }}</span></span>
+        <span class="muted" style="font-size: 14px;">{{ row.action_label }} · 취약점 {{ row.vuln_count }}건 · {{ row.top_severity }}</span>
+      </div>
+      <div class="row-meta">
+        {% if row.warnings %}<span class="badge warn">규칙 변경</span>{% endif %}
+        <span class="badge {% if row.impact == '영향 있음' %}high{% endif %}">{{ row.impact or "판별 안 함" }}</span>
+      </div>
+    </a>
+  {% else %}
+    <p class="empty">이 조건에 해당하는 패키지가 없어요.</p>
+  {% endfor %}
+</section>
+{% endblock %}
